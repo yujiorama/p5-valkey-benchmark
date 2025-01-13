@@ -1,0 +1,14 @@
+services:
+  valkey:
+    image: valkey/valkey:8
+    ports:
+      - "6379:6379"
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - .:/app
+    depends_on:
+      - valkey
