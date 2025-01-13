@@ -663,7 +663,7 @@ $ffi->attach(valkeyvAppendCommand => [ 'valkey_context', 'string', 'char*' ] => 
 # int valkeyAppendCommand(valkeyContext *c, const char *format, ...);
 $ffi->attach(valkeyAppendCommand => [ 'valkey_context', 'string' ] => [ 'int' ] => 'int');
 # int valkeyAppendCommandArgv(valkeyContext *c, int argc, const char **argv, const size_t *argvlen);
-$ffi->attach(valkeyAppendCommandArgv => [ 'valkey_context', 'int', 'opaque', 'size_t*' ] => 'int');
+$ffi->attach(valkeyAppendCommandArgv => [ 'valkey_context', 'int', 'string*', 'size_t*' ] => 'int');
 #
 # /* Issue a command to Valkey. In a blocking context, it is identical to calling
 #  * valkeyAppendCommand, followed by valkeyGetReply. The function will return
@@ -675,7 +675,7 @@ $ffi->attach(valkeyvCommand => [ 'valkey_context', 'string', 'char*' ] => 'opaqu
 # void *valkeyCommand(valkeyContext *c, const char *format, ...);
 $ffi->attach(valkeyCommand => [ 'valkey_context', 'string' ] => [ 'int' ] => 'opaque');
 # void *valkeyCommandArgv(valkeyContext *c, int argc, const char **argv, const size_t *argvlen);
-$ffi->attach(valkeyCommandArgv => [ 'valkey_context', 'int', 'opaque', 'size_t*' ] => 'opaque');
+$ffi->attach(valkeyCommandArgv => [ 'valkey_context', 'int', 'string*', 'size_t*' ] => 'opaque');
 
 sub new {
     my ($class, %args) = @_;
@@ -703,9 +703,12 @@ sub new {
 }
 
 sub command {
-    my ($self, $command) = @_;
+    my ($self, $command, $command_args) = @_;
 
-    my $opaque = valkeyCommand($self->{valkey_context}, $command, 0);
+    my $argc = 1 + scalar @{ $command_args // [] };
+    my $argv = [ $command, @{ $command_args // [] } ];
+    my $argvlen = [ map { length $_ } @{ $argv } ];
+    my $opaque = valkeyCommandArgv($self->{valkey_context}, $argc, $argv, $argvlen);
     my $reply = $ffi->cast('opaque' => 'valkey_reply', $opaque);
     return $reply;
 }
