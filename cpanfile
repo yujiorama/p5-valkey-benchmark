@@ -7,3 +7,6 @@ requires 'Data::UUID::MT';
 requires 'Test2';
 requires 'Test2::V0';
 requires 'Data::Printer';
+
+requires 'Redis', '== 2.000';
+requires 'Redis::Fast', '== 0.37';
