@@ -449,6 +449,49 @@ package Valkey::FFI::ValkeyContext {
 }
 
 package Valkey::FFI::ValkeyReply {
+    # read.h
+    # - `VALKEY_REPLY_STRING` - A string reply which will be in `reply->str`.
+    # #define VALKEY_REPLY_STRING 1
+    use constant VALKEY_REPLY_STRING => 1;
+    # - `VALKEY_REPLY_ARRAY` - An array reply where each element is in `reply->element` with the number of elements in `reply->element`.
+    # #define VALKEY_REPLY_ARRAY 2
+    use constant VALKEY_REPLY_ARRAY => 2;
+    # - `VALKEY_REPLY_INTEGER` - An integer reply, which will be in `reply->integer`.
+    # #define VALKEY_REPLY_INTEGER 3
+    use constant VALKEY_REPLY_INTEGER => 3;
+    # - `VALKEY_REPLY_NIL` - a nil reply.
+    # #define VALKEY_REPLY_NIL 4
+    use constant VALKEY_REPLY_NIL => 4;
+    # - `VALKEY_REPLY_STATUS` - A status reply which will be in `reply->str`.
+    # #define VALKEY_REPLY_STATUS 5
+    use constant VALKEY_REPLY_STATUS => 5;
+    # - `VALKEY_REPLY_ERROR` - An error reply. The error string is in `reply->str`.
+    # #define VALKEY_REPLY_ERROR 6
+    use constant VALKEY_REPLY_ERROR => 6;
+    # - `VALKEY_REPLY_DOUBLE` - A double reply which will be in `reply->dval` as well as `reply->str`.
+    # #define VALKEY_REPLY_DOUBLE 7
+    use constant VALKEY_REPLY_DOUBLE => 7;
+    # - `VALKEY_REPLY_BOOL` - A boolean reply which will be in `reply->integer`.
+    # #define VALKEY_REPLY_BOOL 8
+    use constant VALKEY_REPLY_BOOL => 8;
+    # - `VALKEY_REPLY_MAP` - A map reply, which structurally looks just like `VALKEY_REPLY_ARRAY` only is meant to represent keys and values. As with an array reply you can access the elements with `reply->element` and `reply->element`.
+    # #define VALKEY_REPLY_MAP 9
+    use constant VALKEY_REPLY_MAP => 9;
+    # - `VALKEY_REPLY_SET` - Another array-like reply representing a set (e.g. a reply from `SMEMBERS`). Access via `reply->element` and `reply->element`.
+    # #define VALKEY_REPLY_SET 10
+    use constant VALKEY_REPLY_SET => 10;
+    # - `VALKEY_REPLY_ATTR` - An attribute reply. As of yet unused by valkey-server.
+    # #define VALKEY_REPLY_ATTR 11
+    use constant VALKEY_REPLY_ATTR => 11;
+    # - `VALKEY_REPLY_PUSH` - An out of band push reply. This is also array-like in nature.
+    # #define VALKEY_REPLY_PUSH 12
+    use constant VALKEY_REPLY_PUSH => 12;
+    # - `VALKEY_REPLY_BIGNUM` - As of yet unused, but the string would be in `reply->str`.
+    # #define VALKEY_REPLY_BIGNUM 13
+    use constant VALKEY_REPLY_BIGNUM => 13;
+    # - `VALKEY_REPLY_VERB` - A verbatim string reply which will be in `reply->str` and who's type will be in `reply->vtype`.
+    # #define VALKEY_REPLY_VERB 14
+    use constant VALKEY_REPLY_VERB => 14;
     # /* This is the reply object returned by valkeyCommand() */
     # typedef struct valkeyReply {
     #     int type;                     /* VALKEY_REPLY_* */
@@ -488,7 +531,111 @@ package Valkey::FFI::ValkeyReply {
 
     sub element {
         my $self = shift;
-        $ffi->cast('opaque' => 'valkey_reply*', $self->_element);
+
+        my $size_of_valkey_reply = $ffi->sizeof('valkey_reply');
+
+        return [ map {
+            $ffi->cast('opaque' => 'valkey_reply', $self->_element + $_ * $size_of_valkey_reply);
+        } 0 .. ($self->elements - 1)
+        ];
+    }
+
+    sub is_string {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_STRING;
+    };
+    sub is_array {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_ARRAY;
+    };
+    sub is_integer {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_INTEGER;
+    };
+    sub is_nil {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_NIL;
+    };
+    sub is_status {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_STATUS;
+    };
+    sub is_error {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_ERROR;
+    };
+    sub is_double {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_DOUBLE;
+    };
+    sub is_bool {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_BOOL;
+    };
+    sub is_map {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_MAP;
+    };
+    sub is_set {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_SET;
+    };
+    sub is_attr {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_ATTR;
+    };
+    sub is_push {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_PUSH;
+    };
+    sub is_bignum {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_BIGNUM;
+    };
+    sub is_verb {
+        my $self = shift;
+        $self->type == VALKEY_REPLY_VERB;
+    };
+
+    sub error {
+        my $self = shift;
+
+        if ( $self->is_error ) {
+            return $self->str;
+        }
+    }
+
+    sub value {
+        my $self = shift;
+
+        if ( $self->is_error ) {
+            return undef;
+        }
+
+        if ( $self->is_nil ) {
+            return undef;
+        }
+
+        if ( $self->is_string || $self->is_status || $self->is_double || $self->is_bignum || $self->is_verb ) {
+            return $self->str;
+        }
+
+        if ( $self->is_integer || $self->is_bool ) {
+            return $self->integer;
+        }
+
+        if ( $self->is_array || $self->is_set ) {
+            # value, value, value, ...
+            return [ map { $_->value } $self->element->@* ];
+        }
+
+        if ( $self->is_map ) {
+            # key, value, key, value, ...
+            my $kvs = $self->element;
+            return { map { $kvs->[$_]->value => $kvs->[$_ + 1]->value } grep { $_ % 2 == 0 } 0 .. $kvs->@* - 1 };
+        }
+
+        return undef;
     }
 }
 
@@ -684,16 +831,16 @@ sub new {
     my $port = $args{port} // 6379;
 
     my $packed_ip = gethostbyname($hostname);
-    if (! defined $packed_ip) {
+    if ( !defined $packed_ip ) {
         croak "gethostbyname failed";
     }
     my $ip_address = inet_ntoa($packed_ip);
 
     my $valkey_context = valkeyConnect($ip_address, $port);
-    if (! defined $valkey_context ) {
+    if ( !defined $valkey_context ) {
         croak "valkeyConnect failed";
     }
-    if ($valkey_context->err) {
+    if ( $valkey_context->err ) {
         croak "valkeyConnect failed: " . $valkey_context->errstr;
     }
 
@@ -711,6 +858,12 @@ sub command {
     my $opaque = valkeyCommandArgv($self->{valkey_context}, $argc, $argv, $argvlen);
     my $reply = $ffi->cast('opaque' => 'valkey_reply', $opaque);
     return $reply;
+}
+
+sub errstr {
+    my ($self) = @_;
+
+    $self->{valkey_context}->errstr // "";
 }
 
 1;

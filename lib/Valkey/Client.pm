@@ -17,45 +17,97 @@ sub new {
 sub ping {
     my ($self) = @_;
 
-    my $pong = $self->{ffi}->command("PING");
+    my $ping = $self->{ffi}->command("PING");
 
-    if ($pong->str() eq "PONG") {
-        return $pong->str();
+    if ( !defined $ping ) {
+        return $self->{ffi}->errstr;
     }
 
-    return 0;
+    return $ping->value;
 }
 
 sub set {
     my ($self, $key, $value) = @_;
 
-    my $ok = $self->{ffi}->command("SET", [$key, $value]);
+    my $set = $self->{ffi}->command("SET", [ $key, $value ]);
 
-    if ($ok->str() eq "OK") {
-        return $ok->str();
+    if ( !defined $set ) {
+        return $self->{ffi}->errstr;
     }
 
-    return 0;
+    return $set->value;
 }
 
 sub setnx {
     my ($self, $key, $value) = @_;
 
-    my $ok = $self->{ffi}->command("SETNX", [$key, $value]);
+    my $setnx = $self->{ffi}->command("SETNX", [ $key, $value ]);
 
-    if ($ok->str() eq "OK") {
-        return $ok->str();
+    if ( !defined $setnx ) {
+        return $self->{ffi}->errstr;
     }
 
-    return 0;
+    return $setnx->value;
 }
 
 sub get {
     my ($self, $key) = @_;
 
-    my $ok = $self->{ffi}->command("GET", [$key]);
+    my $get = $self->{ffi}->command("GET", [ $key ]);
 
-    return $ok->str();
+    if ( !defined $get ) {
+        return $self->{ffi}->errstr;
+    }
+
+    return $get->value;
+}
+
+sub exists {
+    my ($self, @keys) = @_;
+
+    if ( ref $keys[0] eq 'ARRAY' ) {
+        @keys = @{ $keys[0] };
+    }
+
+    my $exists = $self->{ffi}->command("EXISTS", \@keys);
+
+    if ( !defined $exists ) {
+        return $self->{ffi}->errstr;
+    }
+
+    return $exists->value;
+}
+
+sub del {
+    my ($self, @keys) = @_;
+
+    if ( ref $keys[0] eq 'ARRAY' ) {
+        @keys = @{ $keys[0] };
+    }
+
+    my $del = $self->{ffi}->command("DEL", \@keys);
+
+    if ( !defined $del ) {
+        return $self->{ffi}->errstr;
+    }
+
+    return $del->value;
+}
+
+sub mget {
+    my ($self, @keys) = @_;
+
+    if ( ref $keys[0] eq 'ARRAY' ) {
+        @keys = @{ $keys[0] };
+    }
+
+    my $mget = $self->{ffi}->command("MGET", \@keys);
+
+    if ( !defined $mget ) {
+        return $self->{ffi}->errstr;
+    }
+
+    return $mget->value;
 }
 
 1;
