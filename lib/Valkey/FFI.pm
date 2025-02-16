@@ -74,214 +74,6 @@ package Valkey::FFI::ValkeyConnectionType {
     );
 }
 
-package Valkey::FFI::ValkeyReadTask {
-    # typedef struct valkeyReadTask {
-    #     int type;
-    #     long long elements;            /* number of elements in multibulk container */
-    #     int idx;                       /* index in parent (array) object */
-    #     void *obj;                     /* holds user-generated value for a read task */
-    #     struct valkeyReadTask *parent; /* parent task */
-    #     void *privdata;                /* user-settable arbitrary field */
-    # } valkeyReadTask;
-    FFI::C->struct(
-        valkey_read_task => [
-            type     => 'int',
-            elements => 'sint64',
-            idx      => 'int',
-            obj      => 'opaque',
-            _parent  => 'opaque', # Pointer to parent task
-            privdata => 'opaque', # User-settable arbitrary field
-        ]
-    );
-
-    sub parent {
-        my $self = shift;
-        $ffi->cast('opaque' => 'valkey_read_task', $self->_parent);
-    }
-}
-
-package Valkey::FFI::ValkeyReplyObjectFunctions {
-    # typedef struct valkeyReplyObjectFunctions {
-    #     void *(*createString)(const valkeyReadTask *, char *, size_t);
-    #     void *(*createArray)(const valkeyReadTask *, size_t);
-    #     void *(*createInteger)(const valkeyReadTask *, long long);
-    #     void *(*createDouble)(const valkeyReadTask *, double, char *, size_t);
-    #     void *(*createNil)(const valkeyReadTask *);
-    #     void *(*createBool)(const valkeyReadTask *, int);
-    #     void (*freeObject)(void *);
-    # } valkeyReplyObjectFunctions;
-    FFI::C->struct(
-        valkey_reply_object_functions => [
-            _create_string  => 'opaque', # Pointer to function
-            _create_array   => 'opaque', # Pointer to function
-            _create_integer => 'opaque', # Pointer to function
-            _create_double  => 'opaque', # Pointer to function
-            _create_nil     => 'opaque', # Pointer to function
-            _create_bool    => 'opaque', # Pointer to function
-            _free_object    => 'opaque', # Pointer to function
-        ]
-    );
-
-    sub create_string {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_read_task*, string, size_t)->opaque', $self->_create_string);
-    }
-
-    sub create_array {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_read_task*, size_t)->opaque', $self->_create_array);
-    }
-
-    sub create_integer {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_read_task*, sint64)->opaque', $self->_create_integer);
-    }
-
-    sub create_double {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_read_task*, double, string, size_t)->opaque', $self->_create_double);
-    }
-
-    sub create_nil {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_read_task*)->opaque', $self->_create_nil);
-    }
-
-    sub create_bool {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_read_task*, int)->opaque', $self->_create_bool);
-    }
-
-    sub free_object {
-        my $self = shift;
-        $ffi->cast('opaque' => '(opaque)->void', $self->_free_object);
-    }
-}
-
-package Valkey::FFI::ValkeyReader {
-    # typedef struct valkeyReader {
-    #     int err;          /* Error flags, 0 when there is no error */
-    #     char errstr[128]; /* String representation of error when applicable */
-    #
-    #     char *buf;             /* Read buffer */
-    #     size_t pos;            /* Buffer cursor */
-    #     size_t len;            /* Buffer length */
-    #     size_t maxbuf;         /* Max length of unused buffer */
-    #     long long maxelements; /* Max multi-bulk elements */
-    #
-    #     valkeyReadTask **task;
-    #     int tasks;
-    #
-    #     int ridx;    /* Index of current read task */
-    #     void *reply; /* Temporary reply pointer */
-    #
-    #     valkeyReplyObjectFunctions *fn;
-    #     void *privdata;
-    # } valkeyReader;
-    FFI::C->struct(
-        valkey_reader => [
-            err         => 'int',
-            _errstr     => 'opaque',
-            buf         => 'opaque',
-            pos         => 'size_t',
-            len         => 'size_t',
-            maxbuf      => 'size_t',
-            maxelements => 'sint64',
-            _task       => 'opaque',
-            tasks       => 'int',
-            ridx        => 'int',
-            reply       => 'opaque',
-            _fn         => 'opaque',
-            privdata    => 'opaque',
-        ]
-    );
-
-    sub errstr {
-        my $self = shift;
-        $ffi->cast('opaque' => 'string', $self->_errstr);
-    }
-
-    sub task {
-        my $self = shift;
-        $ffi->cast('opaque' => 'valkey_read_task*', $self->_task);
-    }
-
-    sub fn {
-        my $self = shift;
-        $ffi->cast('opaque' => 'valkey_reply_object_functions', $self->_fn);
-    }
-}
-
-package Valkey::FFI::ValkeyContextFuncs {
-    # typedef struct valkeyContextFuncs {
-    #     int (*connect)(struct valkeyContext *, const valkeyOptions *);
-    #     void (*close)(struct valkeyContext *);
-    #     void (*free_privctx)(void *);
-    #     void (*async_read)(struct valkeyAsyncContext *);
-    #     void (*async_write)(struct valkeyAsyncContext *);
-    #
-    #     /* Read/Write data to the underlying communication stream, returning the
-    #      * number of bytes read/written.  In the event of an unrecoverable error
-    #      * these functions shall return a value < 0.  In the event of a
-    #      * recoverable error, they should return 0. */
-    #     sint32 (*read)(struct valkeyContext *, char *, size_t);
-    #     sint32 (*write)(struct valkeyContext *);
-    #     int (*set_timeout)(struct valkeyContext *, const struct timeval);
-    # } valkeyContextFuncs;
-    FFI::C->struct(
-        valkey_context_funcs => [
-            _connect      => 'opaque', # Pointer to function
-            _close        => 'opaque', # Pointer to function
-            _free_privctx => 'opaque', # Pointer to function
-            _async_read   => 'opaque', # Pointer to function
-            _async_write  => 'opaque', # Pointer to function
-            _read         => 'opaque', # Pointer to function
-            _write        => 'opaque', # Pointer to function
-            _set_timeout  => 'opaque', # Pointer to function
-        ]
-    );
-
-    sub connect {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_context*, valkey_options*)->int', $self->_connect);
-    }
-
-    sub close {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_context*)->void', $self->_close);
-    }
-
-    sub free_privctx {
-        my $self = shift;
-        $ffi->cast('opaque' => '(opaque)->void', $self->_free_privctx);
-    }
-
-    sub async_read {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_async_context*)->void', $self->_async_read);
-    }
-
-    sub async_write {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_async_context*)->void', $self->_async_write);
-    }
-
-    sub read {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_context*, string, size_t)->sint32', $self->_read);
-    }
-
-    sub write {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_context*)->sint32', $self->_write);
-    }
-
-    sub set_timeout {
-        my $self = shift;
-        $ffi->cast('opaque' => '(valkey_context*, timeval)->int', $self->_set_timeout);
-    }
-}
-
 package Valkey::FFI::ValkeyContext {
     # /* Connection type can be blocking or non-blocking and is set in the
     #  * least significant bit of the flags field in valkeyContext. */
@@ -508,36 +300,35 @@ package Valkey::FFI::ValkeyReply {
     #     size_t elements;              /* number of elements, for VALKEY_REPLY_ARRAY */
     #     struct valkeyReply **element; /* elements vector for VALKEY_REPLY_ARRAY */
     # } valkeyReply;
-    FFI::C->struct(valkey_reply => [
-        type     => 'int',
-        integer  => 'sint64',
-        dval     => 'double',
-        len      => 'size_t',
-        _str     => 'opaque',
-        _vtypes  => 'opaque',
-        elements => 'size_t',
-        _element => 'opaque',
-    ]);
+    use FFI::Platypus::Record qw(record_layout_1);
+    record_layout_1($ffi,
+        sint32    => 'type',
+        sint32    => ':',
+        sint64    => 'integer',
+        double    => 'dval',
+        size_t    => 'len',
+        opaque    => '_str',
+        'char[4]' => 'vtype',
+        sint32    => ':',
+        size_t    => 'elements',
+        opaque    => '_element',
+    );
 
     sub str {
         my $self = shift;
-        $ffi->cast('opaque' => 'string', $self->_str);
-    }
-
-    sub vtypes {
-        my $self = shift;
-        $ffi->cast('opaque' => 'string(4)', $self->_vtypes);
+        return $ffi->cast('opaque' => 'string', $self->_str);
     }
 
     sub element {
         my $self = shift;
 
-        my $size_of_valkey_reply = $ffi->sizeof('valkey_reply');
+        my $pointers = $ffi->cast('opaque' => "opaque[" . $self->elements . "]", $self->_element);
 
-        return [ map {
-            $ffi->cast('opaque' => 'valkey_reply', $self->_element + $_ * $size_of_valkey_reply);
-        } 0 .. ($self->elements - 1)
-        ];
+        my $elements = [ map {
+            $ffi->cast('opaque' => 'valkeyReply', $_)
+        } @{$pointers}];
+
+        return $elements;
     }
 
     sub is_string {
@@ -626,7 +417,7 @@ package Valkey::FFI::ValkeyReply {
 
         if ( $self->is_array || $self->is_set ) {
             # value, value, value, ...
-            return [ map { $_->value } $self->element->@* ];
+            return [ map { defined $_ ? $_->value : undef } $self->element->@* ];
         }
 
         if ( $self->is_map ) {
@@ -731,98 +522,54 @@ package Valkey::FFI::ValkeyOptions {
     }
 }
 
-# valkeyContext *valkeyConnectWithOptions(const valkeyOptions *options);
-$ffi->attach(valkeyConnectWithOptions => [ 'valkey_options' ] => 'valkey_context');
+$ffi->type('record(Valkey::FFI::ValkeyReply)' => 'valkeyReply');
+
+# # valkeyContext *valkeyConnectWithOptions(const valkeyOptions *options);
+# $ffi->attach(valkeyConnectWithOptions => [ 'valkey_options' ] => 'valkey_context');
 # valkeyContext *valkeyConnect(const char *ip, int port);
 $ffi->attach(valkeyConnect => [ 'string', 'int' ] => 'valkey_context');
-# valkeyContext *valkeyConnectWithTimeout(const char *ip, int port, const struct timeval tv);
-$ffi->attach(valkeyConnectWithTimeout => [ 'string', 'int', 'timeval' ] => 'valkey_context');
-# valkeyContext *valkeyConnectNonBlock(const char *ip, int port);
-$ffi->attach(valkeyConnectNonBlock => [ 'string', 'int' ] => 'valkey_context');
-# valkeyContext *valkeyConnectBindNonBlock(const char *ip, int port,
-#                                          const char *source_addr);
-$ffi->attach(valkeyConnectBindNonBlock => [ 'string', 'int', 'string' ] => 'valkey_context');
-# valkeyContext *valkeyConnectBindNonBlockWithReuse(const char *ip, int port,
-#                                                   const char *source_addr);
-$ffi->attach(valkeyConnectBindNonBlockWithReuse => [ 'string', 'int', 'string' ] => 'valkey_context');
-# valkeyContext *valkeyConnectUnix(const char *path);
-$ffi->attach(valkeyConnectUnix => [ 'string' ] => 'valkey_context');
-# valkeyContext *valkeyConnectUnixWithTimeout(const char *path, const struct timeval tv);
-$ffi->attach(valkeyConnectUnixWithTimeout => [ 'string', 'timeval' ] => 'valkey_context');
-# valkeyContext *valkeyConnectUnixNonBlock(const char *path);
-$ffi->attach(valkeyConnectUnixNonBlock => [ 'string' ] => 'valkey_context');
-# valkeyContext *valkeyConnectFd(uint64 fd);
-$ffi->attach(valkeyConnectFd => [ 'uint64' ] => 'valkey_context');
-#
-# /**
-#  * Reconnect the given context using the saved information.
-#  *
-#  * This re-uses the exact same connect options as in the initial connection.
-#  * host, ip (or path), timeout and bind address are reused,
-#  * flags are used unmodified from the existing context.
-#  *
-#  * Returns VALKEY_OK on successful connect or VALKEY_ERR otherwise.
-#  */
-# int valkeyReconnect(valkeyContext *c);
-$ffi->attach(valkeyReconnect => [ 'valkey_context' ] => 'int');
-#
-# valkeyPushFn *valkeySetPushCallback(valkeyContext *c, valkeyPushFn *fn);
-$ffi->attach(valkeySetPushCallback => [ 'valkey_context', 'opaque' ] => 'opaque');
-# int valkeySetTimeout(valkeyContext *c, const struct timeval tv);
-$ffi->attach(valkeySetTimeout => [ 'valkey_context', 'timeval' ] => 'int');
-#
-# /* Configurations using socket options. Applied directly to the underlying
-#  * socket and not automatically applied after a reconnect. */
-# int valkeyEnableKeepAlive(valkeyContext *c);
-$ffi->attach(valkeyEnableKeepAlive => [ 'valkey_context' ] => 'int');
-# int valkeyEnableKeepAliveWithInterval(valkeyContext *c, int interval);
-$ffi->attach(valkeyEnableKeepAliveWithInterval => [ 'valkey_context', 'int' ] => 'int');
-# int valkeySetTcpUserTimeout(valkeyContext *c, unsigned int timeout);
-$ffi->attach(valkeySetTcpUserTimeout => [ 'valkey_context', 'uint' ] => 'int');
-#
-# void valkeyFree(valkeyContext *c);
-$ffi->attach(valkeyFree => [ 'valkey_context' ] => 'void');
-# uint64 valkeyFreeKeepFd(valkeyContext *c);
-$ffi->attach(valkeyFreeKeepFd => [ 'valkey_context' ] => 'uint64');
-# int valkeyBufferRead(valkeyContext *c);
-$ffi->attach(valkeyBufferRead => [ 'valkey_context' ] => 'int');
-# int valkeyBufferWrite(valkeyContext *c, int *done);
-$ffi->attach(valkeyBufferWrite => [ 'valkey_context', 'opaque' ] => 'int');
-#
-# /* In a blocking context, this function first checks if there are unconsumed
-#  * replies to return and returns one if so. Otherwise, it flushes the output
-#  * buffer to the socket and reads until it has a reply. In a non-blocking
-#  * context, it will return unconsumed replies until there are no more. */
-# int valkeyGetReply(valkeyContext *c, void **reply);
-$ffi->attach(valkeyGetReply => [ 'valkey_context', 'opaque' ] => 'int');
-# int valkeyGetReplyFromReader(valkeyContext *c, void **reply);
-$ffi->attach(valkeyGetReplyFromReader => [ 'valkey_context', 'opaque' ] => 'int');
-#
-# /* Write a formatted command to the output buffer. Use these functions in blocking mode
-#  * to get a pipeline of commands. */
-# int valkeyAppendFormattedCommand(valkeyContext *c, const char *cmd, size_t len);
-$ffi->attach(valkeyAppendFormattedCommand => [ 'valkey_context', 'string', 'size_t' ] => 'int');
-#
-# /* Write a command to the output buffer. Use these functions in blocking mode
-#  * to get a pipeline of commands. */
-# int valkeyvAppendCommand(valkeyContext *c, const char *format, va_list ap);
-$ffi->attach(valkeyvAppendCommand => [ 'valkey_context', 'string', 'char*' ] => 'int');
-# int valkeyAppendCommand(valkeyContext *c, const char *format, ...);
-$ffi->attach(valkeyAppendCommand => [ 'valkey_context', 'string' ] => [ 'int' ] => 'int');
-# int valkeyAppendCommandArgv(valkeyContext *c, int argc, const char **argv, const size_t *argvlen);
-$ffi->attach(valkeyAppendCommandArgv => [ 'valkey_context', 'int', 'string*', 'size_t*' ] => 'int');
-#
+# # valkeyContext *valkeyConnectWithTimeout(const char *ip, int port, const struct timeval tv);
+# $ffi->attach(valkeyConnectWithTimeout => [ 'string', 'int', 'timeval' ] => 'valkey_context');
+# # valkeyContext *valkeyConnectNonBlock(const char *ip, int port);
+# $ffi->attach(valkeyConnectNonBlock => [ 'string', 'int' ] => 'valkey_context');
+# # valkeyContext *valkeyConnectBindNonBlock(const char *ip, int port,
+# #                                          const char *source_addr);
+# $ffi->attach(valkeyConnectBindNonBlock => [ 'string', 'int', 'string' ] => 'valkey_context');
+# # valkeyContext *valkeyConnectBindNonBlockWithReuse(const char *ip, int port,
+# #                                                   const char *source_addr);
+# $ffi->attach(valkeyConnectBindNonBlockWithReuse => [ 'string', 'int', 'string' ] => 'valkey_context');
+# # valkeyContext *valkeyConnectUnix(const char *path);
+# $ffi->attach(valkeyConnectUnix => [ 'string' ] => 'valkey_context');
+# # valkeyContext *valkeyConnectUnixWithTimeout(const char *path, const struct timeval tv);
+# $ffi->attach(valkeyConnectUnixWithTimeout => [ 'string', 'timeval' ] => 'valkey_context');
+# # valkeyContext *valkeyConnectUnixNonBlock(const char *path);
+# $ffi->attach(valkeyConnectUnixNonBlock => [ 'string' ] => 'valkey_context');
+# # valkeyContext *valkeyConnectFd(uint64 fd);
+# $ffi->attach(valkeyConnectFd => [ 'uint64' ] => 'valkey_context');
+# #
+# # /**
+# #  * Reconnect the given context using the saved information.
+# #  *
+# #  * This re-uses the exact same connect options as in the initial connection.
+# #  * host, ip (or path), timeout and bind address are reused,
+# #  * flags are used unmodified from the existing context.
+# #  *
+# #  * Returns VALKEY_OK on successful connect or VALKEY_ERR otherwise.
+# #  */
+# # int valkeyReconnect(valkeyContext *c);
+# $ffi->attach(valkeyReconnect => [ 'valkey_context' ] => 'int');
+
 # /* Issue a command to Valkey. In a blocking context, it is identical to calling
 #  * valkeyAppendCommand, followed by valkeyGetReply. The function will return
 #  * NULL if there was an error in performing the request, otherwise it will
 #  * return the reply. In a non-blocking context, it is identical to calling
 #  * only valkeyAppendCommand and will always return NULL. */
 # void *valkeyvCommand(valkeyContext *c, const char *format, va_list ap);
-$ffi->attach(valkeyvCommand => [ 'valkey_context', 'string', 'char*' ] => 'opaque');
+$ffi->attach(valkeyvCommand => [ 'valkey_context', 'string', 'char*' ] => 'valkeyReply*');
 # void *valkeyCommand(valkeyContext *c, const char *format, ...);
-$ffi->attach(valkeyCommand => [ 'valkey_context', 'string' ] => [ 'int' ] => 'opaque');
+$ffi->attach(valkeyCommand => [ 'valkey_context', 'string' ] => [ 'int' ] => 'valkeyReply*');
 # void *valkeyCommandArgv(valkeyContext *c, int argc, const char **argv, const size_t *argvlen);
-$ffi->attach(valkeyCommandArgv => [ 'valkey_context', 'int', 'string*', 'size_t*' ] => 'opaque');
+$ffi->attach(valkeyCommandArgv => [ 'valkey_context', 'int', 'string*', 'size_t*' ] => 'valkeyReply*');
 
 sub new {
     my ($class, %args) = @_;
@@ -855,8 +602,7 @@ sub command {
     my $argc = 1 + scalar @{ $command_args // [] };
     my $argv = [ $command, @{ $command_args // [] } ];
     my $argvlen = [ map { length $_ } @{ $argv } ];
-    my $opaque = valkeyCommandArgv($self->{valkey_context}, $argc, $argv, $argvlen);
-    my $reply = $ffi->cast('opaque' => 'valkey_reply', $opaque);
+    my $reply = valkeyCommandArgv($self->{valkey_context}, $argc, $argv, $argvlen);
     return $reply;
 }
 
