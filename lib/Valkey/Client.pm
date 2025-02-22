@@ -20,7 +20,7 @@ sub ping {
     my $ping = $self->{ffi}->command("PING");
 
     if ( !defined $ping ) {
-        return $self->{ffi}->errstr;
+        return undef;
     }
 
     return $ping->value;
@@ -32,7 +32,7 @@ sub set {
     my $set = $self->{ffi}->command("SET", [ $key, $value ]);
 
     if ( !defined $set ) {
-        return $self->{ffi}->errstr;
+        return undef;
     }
 
     return $set->value;
@@ -44,7 +44,7 @@ sub setnx {
     my $setnx = $self->{ffi}->command("SETNX", [ $key, $value ]);
 
     if ( !defined $setnx ) {
-        return $self->{ffi}->errstr;
+        return undef;
     }
 
     return $setnx->value;
@@ -72,7 +72,7 @@ sub exists {
     my $exists = $self->{ffi}->command("EXISTS", \@keys);
 
     if ( !defined $exists ) {
-        return $self->{ffi}->errstr;
+        return undef;
     }
 
     return $exists->value;
@@ -88,7 +88,7 @@ sub del {
     my $del = $self->{ffi}->command("DEL", \@keys);
 
     if ( !defined $del ) {
-        return $self->{ffi}->errstr;
+        return undef;
     }
 
     return $del->value;
@@ -104,10 +104,15 @@ sub mget {
     my $mget = $self->{ffi}->command("MGET", \@keys);
 
     if ( !defined $mget ) {
-        return $self->{ffi}->errstr;
+        return undef;
     }
 
     return $mget->value;
+}
+
+sub errstr {
+    my ($self) = @_;
+    return $self->{ffi}->errstr;
 }
 
 1;
