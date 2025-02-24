@@ -6,7 +6,7 @@ use Test2::V0;
 
 use ValKey::Client;
 
-my $valkey = Valkey::Client->new(hostname => 'valkey', port => 6379);
+my $valkey = Valkey::Client->new(use_ffi => 1, hostname => 'valkey', port => 6379);
 
 ok($valkey->ping, 'ping');
 
