@@ -43,11 +43,18 @@ ok($valkey->set('key-next' => '0'), 'key-next = 0');
 ok($valkey->set('key-left' => $key_next), 'key-left');
 
 todo "not working" => sub {
+    is $valkey->mget('foo'), array {
+        item 'baz';
+    }, 'mget 1';
+    is $valkey->mget('key-next', 'key-left'), array {
+        item '0';
+        item '3';
+    }, 'mget 2';
     is $valkey->mget('foo', 'key-next', 'key-left'), array {
         item 'baz';
         item '0';
         item '3';
-    }, 'mget';
+    }, 'mget 3';
 };
 
 done_testing();

@@ -303,20 +303,20 @@ package Valkey::FFI::ValkeyReply {
     use FFI::Platypus::Record qw(record_layout_1);
     record_layout_1($ffi,
         sint32    => 'type',
-        sint32    => ':',
+        # sint32    => ':',
         sint64    => 'integer',
         double    => 'dval',
         size_t    => 'len',
         opaque    => '_str',
         'char[4]' => 'vtype',
-        sint32    => ':',
+        # sint32    => ':',
         size_t    => 'elements',
         opaque    => '_element',
     );
 
     sub str {
         my $self = shift;
-        return $ffi->cast('opaque' => 'string', $self->_str);
+        return $ffi->cast('opaque' => 'string', $self->_str) // "";
     }
 
     sub element {
@@ -325,8 +325,8 @@ package Valkey::FFI::ValkeyReply {
         my $pointers = $ffi->cast('opaque' => "opaque[" . $self->elements . "]", $self->_element);
 
         my $elements = [ map {
-            $ffi->cast('opaque' => 'valkeyReply', $_)
-        } @{$pointers}];
+            $ffi->cast('opaque' => 'valkey_reply', $_)
+        } @{ $pointers } ];
 
         return $elements;
     }
@@ -430,99 +430,7 @@ package Valkey::FFI::ValkeyReply {
     }
 }
 
-package Valkey::FFI::ValkeyOptions::Endpoint {
-    FFI::C->union(
-        valkey_options_endpoint => [
-            tcp          => 'tcp',
-            _unix_socket => 'opaque', # Pointer to char
-            fd           => 'uint64', # uint64 type
-        ]
-    );
-
-    sub unix_socket {
-        my $self = shift;
-        $ffi->cast('opaque' => 'string', $self->_unix_socket);
-    }
-}
-
-package Valkey::FFI::ValkeyOptions {
-    # typedef struct {
-    #     /*
-    #      * the type of connection to use. This also indicates which
-    #      * `endpoint` member field to use
-    #      */
-    #     int type;
-    #     /* bit field of VALKEY_OPT_xxx */
-    #     int options;
-    #     /* timeout value for connect operation. If NULL, no timeout is used */
-    #     const struct timeval *connect_timeout;
-    #     /* timeout value for commands. If NULL, no timeout is used.  This can be
-    #      * updated at runtime with valkeySetTimeout/valkeyAsyncSetTimeout. */
-    #     const struct timeval *command_timeout;
-    #     union {
-    #         /** use this field for tcp/ip connections */
-    #         struct {
-    #             const char *source_addr;
-    #             const char *ip;
-    #             int port;
-    #         } tcp;
-    #         /** use this field for unix domain sockets */
-    #         const char *unix_socket;
-    #         /**
-    #          * use this field to have libvalkey operate an already-open
-    #          * file descriptor */
-    #         uint64 fd;
-    #     } endpoint;
-    #
-    #     /* Optional user defined data/destructor */
-    #     void *privdata;
-    #     void (*free_privdata)(void *);
-    #
-    #     /* A user defined PUSH message callback */
-    #     valkeyPushFn *push_cb;
-    #     valkeyAsyncPushFn *async_push_cb;
-    # } valkeyOptions;
-    FFI::C->struct(
-        valkey_options => [
-            type             => 'int',
-            options          => 'int',
-            _connect_timeout => 'opaque', # Pointer to struct timeval
-            _command_timeout => 'opaque', # Pointer to struct timeval
-            endpoint         => 'valkey_options_endpoint',
-            privdata         => 'opaque', # Pointer to user-defined data
-            _free_privdata   => 'opaque', # Pointer to function
-            _push_cb         => 'opaque', # Pointer to function
-            _async_push_cb   => 'opaque', # Pointer to function
-        ]
-    );
-
-    sub connect_timeout {
-        my $self = shift;
-        $ffi->cast('opaque' => 'timeval', $self->_connect_timeout);
-    }
-
-    sub command_timeout {
-        my $self = shift;
-        $ffi->cast('opaque' => 'timeval', $self->_command_timeout);
-    }
-
-    sub free_privdata {
-        my $self = shift;
-        $ffi->cast('opaque' => '(opaque)->void', $self->_free_privdata);
-    }
-
-    sub push_cb {
-        my $self = shift;
-        $ffi->cast('opaque' => '(opaque, opaque)->void', $self->_push_cb);
-    }
-
-    sub async_push_cb {
-        my $self = shift;
-        $ffi->cast('opaque' => '(opaque, opaque)->void', $self->_async_push_cb);
-    }
-}
-
-$ffi->type('record(Valkey::FFI::ValkeyReply)' => 'valkeyReply');
+$ffi->type('record(Valkey::FFI::ValkeyReply)' => 'valkey_reply');
 
 # # valkeyContext *valkeyConnectWithOptions(const valkeyOptions *options);
 # $ffi->attach(valkeyConnectWithOptions => [ 'valkey_options' ] => 'valkey_context');
@@ -565,11 +473,11 @@ $ffi->attach(valkeyConnect => [ 'string', 'int' ] => 'valkey_context');
 #  * return the reply. In a non-blocking context, it is identical to calling
 #  * only valkeyAppendCommand and will always return NULL. */
 # void *valkeyvCommand(valkeyContext *c, const char *format, va_list ap);
-$ffi->attach(valkeyvCommand => [ 'valkey_context', 'string', 'char*' ] => 'valkeyReply*');
+# $ffi->attach(valkeyvCommand => [ 'valkey_context', 'string', 'char*' ] => 'valkey_reply*');
 # void *valkeyCommand(valkeyContext *c, const char *format, ...);
-$ffi->attach(valkeyCommand => [ 'valkey_context', 'string' ] => [ 'int' ] => 'valkeyReply*');
+# $ffi->attach(valkeyCommand => [ 'valkey_context', 'string' ] => 'valkey_reply*');
 # void *valkeyCommandArgv(valkeyContext *c, int argc, const char **argv, const size_t *argvlen);
-$ffi->attach(valkeyCommandArgv => [ 'valkey_context', 'int', 'string*', 'size_t*' ] => 'valkeyReply*');
+$ffi->attach(valkeyCommandArgv => [ 'valkey_context', 'int', 'string*', 'size_t*' ] => 'valkey_reply*');
 
 sub new {
     my ($class, %args) = @_;
@@ -599,11 +507,10 @@ sub new {
 sub command {
     my ($self, $command, $command_args) = @_;
 
-    my $argc = 1 + scalar @{ $command_args // [] };
-    my $argv = [ $command, @{ $command_args // [] } ];
+    my $argv = [ $command, map { $_ . q() } @{ $command_args // [] } ];
+    my $argc = scalar @{$argv};
     my $argvlen = [ map { length $_ } @{ $argv } ];
-    my $reply = valkeyCommandArgv($self->{valkey_context}, $argc, $argv, $argvlen);
-    return $reply;
+    return valkeyCommandArgv($self->{valkey_context}, $argc, $argv, $argvlen);
 }
 
 sub errstr {
