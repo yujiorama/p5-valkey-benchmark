@@ -1,4 +1,4 @@
-FROM perl:5-slim
+FROM public.ecr.aws/docker/library/perl:5-slim
 
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -13,10 +13,15 @@ RUN --mount=type=cache,target=/var/cache/libvalkey,sharing=locked \
     && USE_TLS=1 make -j$(nproc) install
 
 WORKDIR /app
+
 COPY cpanfile* /app/
+RUN mkdir -p /opt/cpan
+RUN cpm install -w $(nproc) --cpanfile /app/cpanfile -L/opt/cpan --no-color --show-build-log-on-failure --show-progress
 
-RUN mkdir -p /opt/app
-RUN cpm install -w $(nproc) --cpanfile /app/cpanfile -L/opt/app/local --no-color --show-build-log-on-failure --show-progress
+COPY . /app/
+RUN perl Makefile.PL && make
 
-ENV PATH=/opt/app/local/bin:$PATH
-ENV PERL5LIB=/opt/app/local/lib/perl5
+RUN perl -I/opt/cpan/lib/perl5 -I/app/lib -Mblib=/app -MValkey::XS -e 'print "Valkey::XS is " . $Valkey::XS::VERSION'
+
+ENV PATH=/opt/cpan/bin:$PATH
+ENV PERL5LIB=/opt/cpan/lib/perl5

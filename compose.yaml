@@ -5,12 +5,18 @@ services:
     mem_limit: 1g
     ports:
       - "6379:6379"
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
   app:
     build:
       context: .
       dockerfile: Dockerfile
     working_dir: /app
     volumes:
-      - .:/app
+      - ./benchmark:/app/benchmark
+      - ./lib:/app/lib
+      - ./t:/app/t
+      - ./Makefile.PL:/app/Makefile.PL
+      - ./cpanfile:/app/cpanfile
     depends_on:
       - valkey
