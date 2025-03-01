@@ -4,20 +4,49 @@ use warnings;
 use utf8;
 
 use Carp qw(croak);
-use Valkey::FFI;
 
 sub new {
     my ($class, %args) = @_;
 
-    return bless +{
-        ffi => Valkey::FFI->new(%args),
-    }, $class;
+    my $use_ffi = $args{use_ffi} // 0;
+
+    if ($use_ffi == 1) {
+        my $self = eval {
+            require Valkey::FFI;
+            Valkey::FFI->import;
+
+            return bless +{
+                delegate => Valkey::FFI->new(%args),
+            }, $class;
+        };
+
+        if ($@) {
+            croak "Valkey::FFI not available: $@";
+        }
+
+        return $self;
+    }
+
+    my $self = eval {
+        require Valkey::XS;
+        Valkey::XS->import;
+
+        return bless +{
+            delegate => Valkey::XS->new(%args),
+        }, $class;
+    };
+
+    if ($@) {
+        croak "Valkey::XS not available: $@";
+    }
+
+    return $self;
 }
 
 sub ping {
     my ($self) = @_;
 
-    my $ping = $self->{ffi}->command("PING");
+    my $ping = $self->{delegate}->command("PING");
 
     if ( !defined $ping ) {
         return undef;
@@ -29,7 +58,7 @@ sub ping {
 sub set {
     my ($self, $key, $value) = @_;
 
-    my $set = $self->{ffi}->command("SET", [ $key, $value ]);
+    my $set = $self->{delegate}->command("SET", [ $key, $value ]);
 
     if ( !defined $set ) {
         return undef;
@@ -41,7 +70,7 @@ sub set {
 sub setnx {
     my ($self, $key, $value) = @_;
 
-    my $setnx = $self->{ffi}->command("SETNX", [ $key, $value ]);
+    my $setnx = $self->{delegate}->command("SETNX", [ $key, $value ]);
 
     if ( !defined $setnx ) {
         return undef;
@@ -53,10 +82,10 @@ sub setnx {
 sub get {
     my ($self, $key) = @_;
 
-    my $get = $self->{ffi}->command("GET", [ $key ]);
+    my $get = $self->{delegate}->command("GET", [ $key ]);
 
     if ( !defined $get ) {
-        return $self->{ffi}->errstr;
+        return $self->{delegate}->errstr;
     }
 
     return $get->value;
@@ -69,7 +98,7 @@ sub exists {
         @keys = @{ $keys[0] };
     }
 
-    my $exists = $self->{ffi}->command("EXISTS", \@keys);
+    my $exists = $self->{delegate}->command("EXISTS", \@keys);
 
     if ( !defined $exists ) {
         return undef;
@@ -85,7 +114,7 @@ sub del {
         @keys = @{ $keys[0] };
     }
 
-    my $del = $self->{ffi}->command("DEL", \@keys);
+    my $del = $self->{delegate}->command("DEL", \@keys);
 
     if ( !defined $del ) {
         return undef;
@@ -101,7 +130,7 @@ sub mget {
         @keys = @{ $keys[0] };
     }
 
-    my $mget = $self->{ffi}->command("MGET", \@keys);
+    my $mget = $self->{delegate}->command("MGET", \@keys);
 
     if ( !defined $mget ) {
         return undef;
@@ -112,7 +141,7 @@ sub mget {
 
 sub errstr {
     my ($self) = @_;
-    return $self->{ffi}->errstr;
+    return $self->{delegate}->errstr;
 }
 
 1;
