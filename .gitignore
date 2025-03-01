@@ -1,7 +1,8 @@
-local/
-cpanfile.snapshot
 .carmel/
 .idea/
+local/
+blib/
+cpanfile.snapshot
 MYMETA.json
 MYMETA.yml
 *.bs
