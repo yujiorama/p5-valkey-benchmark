@@ -8,6 +8,7 @@
 
 typedef struct {
     valkeyContext *context;
+    int verbose;
 } valkey_xs_t, *Valkey__XS;
 
 typedef struct {
@@ -73,17 +74,22 @@ PROTOTYPES: ENABLE
 
 void
 hello_world()
-  CODE:
-    printf("Hello, World from XS!\n");
-
-Valkey::XS
-_new(const char *cls);
 CODE:
 {
-    fprintf(stderr, "new\n");
+    printf("Hello, World from XS!\n");
+}
+
+Valkey::XS
+_new(const char *cls, int verbose = 0);
+CODE:
+{
+    if (verbose > 0) {
+        fprintf(stderr, "new\n");
+    }
     PERL_UNUSED_VAR(cls);
     Newxz(RETVAL, sizeof(valkey_xs_t), valkey_xs_t);
     RETVAL->context = NULL;
+    RETVAL->verbose = verbose;
 }
 OUTPUT:
     RETVAL
@@ -97,7 +103,9 @@ CODE:
     int err;
     char *ip;
 
-    fprintf(stderr, "_connect\n");
+    if (self->verbose > 0) {
+        fprintf(stderr, "_connect\n");
+    }
     if (self->context) {
         valkeyFree(self->context);
         self->context = NULL;
@@ -128,7 +136,9 @@ PREINIT:
     STRLEN len;
 CODE:
 {
-    fprintf(stderr, "_command\n");
+    if (self->verbose > 0) {
+        fprintf(stderr, "_command\n");
+    }
     if (!self->context) {
         croak("Not connected to valkey server");
     }
@@ -143,8 +153,10 @@ CODE:
         }
         argv[i] = SvPV(ST(i + 1), len);
         argvlen[i] = len;
+        if (self->verbose > 0) {
+            fprintf(stderr, "_command[%d]: %s\n", i, argv[i]);
+        }
     }
-    fprintf(stderr, "command: %s\n", argv[0]);
     reply = (valkeyReply *)valkeyCommandArgv(self->context, argc, (const char**)argv, argvlen);
     ret = Valkey__XS_decode_reply(reply);
     freeReplyObject(reply);
@@ -173,7 +185,9 @@ void
 DESTROY(Valkey::XS self);
 CODE:
 {
-    fprintf(stderr, "destroy\n");
+    if (self->verbose > 0) {
+        fprintf(stderr, "destroy\n");
+    }
     if (self->context) {
         valkeyFree(self->context);
         self->context = NULL;

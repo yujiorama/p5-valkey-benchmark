@@ -27,14 +27,19 @@ package Valkey::XS::ValkeyReply {
 
     sub value {
         my ($self) = @_;
-        return $self->{str} // $self->{integer} // $self->{element};
+
+        if (defined $self->{element}) {
+            return [ map { $_->value } @{$self->{element}} ];
+        }
+
+        return $self->{str} // $self->{integer};
     }
 };
 
 sub new {
     my ($class, %args) = @_;
 
-    my $self = $class->_new;
+    my $self = __PACKAGE__->_new($args{verbose} // 0);
 
     my $hostname = $args{hostname} // 'localhost';
     my $port = $args{port} // 6379;
@@ -54,17 +59,21 @@ sub command {
         croak $error;
     }
 
-    if (ref $result eq 'HASH') {
-        return Valkey::XS::ValkeyReply->new($result);
+    if (defined $result) {
+        my $reftype = ref($result);
+
+        if ($reftype eq 'ARRAY') {
+            return Valkey::XS::ValkeyReply->new(+{
+                element => [ map { Valkey::XS::ValkeyReply->new($_) } @{ $result } ],
+            });
+        } elsif ($reftype eq 'HASH') {
+            return Valkey::XS::ValkeyReply->new($result);
+        } else {
+            return Valkey::XS::ValkeyReply->new(+{str => "$result"});
+        }
     }
 
-    if (ref $result eq 'ARRAY') {
-        return Valkey::XS::ValkeyReply->new(+{
-            element => [ map { Valkey::XS::ValkeyReply->new($_) } @{ $result } ],
-        });
-    }
-
-    return undef;
+    return Valkey::XS::ValkeyReply->new(+{});
 }
 
 sub errstr {

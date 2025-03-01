@@ -7,11 +7,13 @@ use Test2::V0;
 use ValKey::Client;
 use Valkey::XS;
 
-ok lives {
-    Valkey::XS::hello_world();
+subtest "hello world" => sub {
+    ok lives {
+        Valkey::XS::hello_world();
+    };
 };
 
-ok lives {
+subtest "simple" => sub {
     my $valkey = Valkey::Client->new(use_ffi => 0, hostname => 'valkey', port => 6379);
 
     ok($valkey->ping, 'ping');
@@ -49,8 +51,8 @@ ok lives {
     ok($valkey->set('key-left' => $key_next), 'key-left');
 };
 
-todo "not working" => sub {
-    my $valkey = Valkey::Client->new(use_ffi => 0, hostname => 'valkey', port => 6379);
+subtest "mget" => sub {
+    my $valkey = Valkey::Client->new(use_ffi => 0, hostname => 'valkey', port => 6379, verbose => 1);
 
     is $valkey->mget('foo'), array {
         item 'baz';
